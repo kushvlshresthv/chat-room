@@ -1,0 +1,35 @@
+* Server.java:
+
+1. Create a 'Server.java' which has a ServerSocket bound to a particular port and listens for any incoming request
+
+2. When a new request comes, get the Socket for that new request
+
+3. Handle the request by another inner class inside Server.java ie ConnectionHandler.java
+
+NOTE: both Server.java and ConnectionHandler.java are Runnables.
+
+
+
+* ConnectionHandler.java
+
+1. implement /constructor/ ConnectionHandler(Socket client) method which just assigns the client to the global variable
+
+2. the actual request is handled by the run() method of the Runnable
+
+3. In the run() first bind the PrintWriter with client socket's OutputStream and BufferedReader with client socket's InputStream(preferably in the try with resources)
+
+4. When the first request comes in, write in the client socket: 'Please enter a nickname: '
+
+5. When the client responds, save the nickname in an instance variable
+
+
+
+* Broadcasting the message to all the clients
+
+1. To achieve this, create a List/ArrayList in the Server.java of type 'ConnectionHandler.java'
+
+2. After creating a ConnectionHandler object, call List.add() to add the ConnectionHandler to the List/ArrayList
+
+3. In order to broadcast the message to all of the Connections, just implement the broadcast(Strig message) and go through each ConnectionHandler in the List/ArrayList and call the writeMessage(String message) method for all the Connection Handler
+
+4. broadcast the message when a new Connection is made
