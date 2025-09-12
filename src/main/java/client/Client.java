@@ -4,9 +4,9 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Scanner;
 
 public class Client {
-
     Socket socket;
     String message;
     boolean running = true;
@@ -26,12 +26,19 @@ public class Client {
 
 
     public void runClient() {
-        try (PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        try (PrintWriter socketWriter = new PrintWriter(socket.getOutputStream(), true);
+             BufferedReader socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
              PrintWriter consoleWriter = new PrintWriter(System.out, true);
+             Scanner scanner = new Scanner(System.in);
         ) {
+
+            consoleWriter.print("Enter your username: ");
+            consoleWriter.flush();
+            String username = scanner.nextLine();
+            socketWriter.println(username);
+
             while (running) {
-                if ((message = reader.readLine()) != null) {
+                if ((message = socketReader.readLine()) != null) {
                     consoleWriter.println(message);
                 }
             }
@@ -39,6 +46,4 @@ public class Client {
             e.printStackTrace();
         }
     }
-
-
 }

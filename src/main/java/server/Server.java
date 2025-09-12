@@ -98,12 +98,9 @@ public class Server {
         PrintWriter writer;
         BufferedReader reader;
 
-
         public ConnectionHandler(Socket clientSocket) {
             this.clientSocket = clientSocket;
         }
-
-
 
         @Override
         public void run() {
@@ -111,8 +108,9 @@ public class Server {
             {
                 writer = new PrintWriter(clientSocket.getOutputStream(), true);
                 reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                writer.println("Welcome to the chatroom");
-                broadcast("New user has just joined the chatroom");
+                String username = reader.readLine();
+                writer.println("Welcome to the chatroom " + username);
+                broadcast("'" + username + "' has just joined the chatroom");
             } catch(Exception e) {
                 e.printStackTrace();
             }
