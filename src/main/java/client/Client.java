@@ -8,12 +8,16 @@ import java.util.Scanner;
 
 public class Client {
     Socket socket;
-    String message;
-    boolean running = true;
+    PrintWriter socketWriter;
+    BufferedReader socketReader;
+    Scanner consoleScanner;
 
     public Client() {
         try {
             socket = new Socket("localhost", 8082);
+            socketWriter = new PrintWriter(socket.getOutputStream(), true);
+            socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            consoleScanner = new Scanner(System.in);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -26,24 +30,79 @@ public class Client {
 
 
     public void runClient() {
-        try (PrintWriter socketWriter = new PrintWriter(socket.getOutputStream(), true);
-             BufferedReader socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-             PrintWriter consoleWriter = new PrintWriter(System.out, true);
-             Scanner scanner = new Scanner(System.in);
-        ) {
 
-            consoleWriter.print("Enter your username: ");
-            consoleWriter.flush();
-            String username = scanner.nextLine();
-            socketWriter.println(username);
+        ServerListener serverListener = new ServerListener(socketReader);
+        ConsoleReader consoleReader = new ConsoleReader(socketWriter, consoleScanner);
+        Thread serverListenerThread = new Thread(serverListener);
+        serverListenerThread.start();
 
-            while (running) {
-                if ((message = socketReader.readLine()) != null) {
-                    consoleWriter.println(message);
-                }
-            }
+        try {
+            System.out.print("Enter your username: ");
+            String username = consoleScanner.nextLine();
+            socketWriter.println("newClient:"+ username);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
+        Thread consoleReaderThread = new Thread(consoleReader);
+        consoleReaderThread.start();
+    }
+}
+
+
+
+class ServerListener implements Runnable {
+
+    private final BufferedReader socketReader;
+    boolean running = true;
+
+    ServerListener(BufferedReader socketReader) {
+        this.socketReader = socketReader;
+    }
+
+    @Override
+    public void run() {
+        try {
+            String message;
+            while (running) {
+                if ((message = socketReader.readLine()) != null) {
+                    System.out.println(message);
+                }
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void stop() {
+        running = false;
+    }
+}
+
+class ConsoleReader implements Runnable {
+
+    PrintWriter socketWriter;
+    Scanner consoleScanner;
+    boolean running = true;
+
+    ConsoleReader(PrintWriter socketWriter, Scanner consoleScanner) {
+        this.socketWriter = socketWriter;
+        this.consoleScanner = consoleScanner;
+    }
+
+    @Override
+    public void run() {
+        try {
+            while(running) {
+                String message = consoleScanner.nextLine();
+                socketWriter.println("message:" + message);
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void stop() {
+        running = false;
     }
 }

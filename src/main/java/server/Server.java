@@ -94,40 +94,83 @@ public class Server {
      *
      */
     class ConnectionHandler implements Runnable {
+        boolean running = true;
         final private Socket clientSocket;
-        PrintWriter writer;
-        BufferedReader reader;
+        PrintWriter clientWriter;
+        BufferedReader clientReader;
+        String username;
 
         public ConnectionHandler(Socket clientSocket) {
             this.clientSocket = clientSocket;
+            try {
+                clientWriter = new PrintWriter(clientSocket.getOutputStream(), true);
+                clientReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         @Override
         public void run() {
-            try
-            {
-                writer = new PrintWriter(clientSocket.getOutputStream(), true);
-                reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                String username = reader.readLine();
-                writer.println("Welcome to the chatroom " + username);
-                broadcast("'" + username + "' has just joined the chatroom");
+           try{
+               System.out.println("Client Connection Received: ");
+
+               while(running) {
+                   String payload = clientReader.readLine();
+                   String command = payload.split(":")[0];
+
+                   switch(command) {
+                       case "newClient": {
+                           String usernameForNewUser = payload.split(":")[1];
+                           handleNewClient(usernameForNewUser);
+                           break;
+                       }
+                       case "message": {
+                           String message = payload.split(":")[1];
+                           handleMessage(message);
+                           break;
+                       }
+
+                       case "changeUsername": {
+                           String newUsername = payload.split(":")[1];
+                           handleChangeUsername(newUsername);
+                           break;
+                       }
+                   }
+               }
+
             } catch(Exception e) {
                 e.printStackTrace();
             }
         }
 
+        void handleNewClient(String usernameForNewUser) {
+            clientWriter.println("Welcome to the chatroom " + usernameForNewUser);
+            broadcast("'" + usernameForNewUser + "' has just joined the chatroom");
+            this.username = usernameForNewUser;
+        }
 
-        public void sendMessage(String message) {
-            writer.println(message);
+        void handleMessage(String message) {
+            broadcast(username + ": " + message);
+        }
+
+        void handleChangeUsername(String newUsername) {
+
         }
 
 
+        /**
+         *  used to send the message to client Socket
+         */
+        public void sendMessage(String message) {
+            clientWriter.println(message);
+        }
 
         public void shutdown() {
             if (clientSocket != null && !clientSocket.isClosed()) {
                 try {
-                    writer.close();
-                    reader.close();
+                    clientWriter.close();
+                    clientReader.close();
                     clientSocket.close();
                 } catch (Exception e) {
                     e.printStackTrace();
