@@ -113,8 +113,6 @@ public class Server {
         @Override
         public void run() {
            try{
-               System.out.println("Client Connection Received: ");
-
                while(running) {
                    String payload = clientReader.readLine();
                    String command = payload.split(":")[0];
