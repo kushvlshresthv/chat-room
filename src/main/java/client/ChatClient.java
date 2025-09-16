@@ -1,9 +1,14 @@
 package client;
 
+import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.AttributedStyle;
+import org.jline.utils.InfoCmp;
+import utils.ColorPrint;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -25,6 +30,7 @@ public class ChatClient {
     ExecutorService executorService;
 
 
+
     Terminal terminal;
     LineReader terminalReader;
 
@@ -33,8 +39,9 @@ public class ChatClient {
         this.hostname = hostname;
         this.port = port;
         try {
+            Completer completer = new StringsCompleter("/disconnect", "/changeUsername");
             this.terminal = TerminalBuilder.builder().system(true).build();
-            this.terminalReader = LineReaderBuilder.builder().terminal(terminal).build();
+            this.terminalReader = LineReaderBuilder.builder().terminal(terminal).completer(completer).build();
         } catch (IOException e) {
             logger.severe("Could not initialize terminal");
         }
@@ -42,6 +49,7 @@ public class ChatClient {
 
 
     public static void main(String[] args) {
+        System.setProperty("java.util.logging.SimpleFormatter.format", "%4$s: %5$s%n");
         ChatClient client = new ChatClient("localhost", 8082);
         client.runClient();
     }
@@ -55,21 +63,63 @@ public class ChatClient {
                 BufferedReader serverReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 BufferedReader consoleBufferedReader = new BufferedReader(new InputStreamReader(System.in))) {
 
+
+            String reply;
             do {
                 System.out.print("Enter your username: ");
                 String username = terminalReader.readLine();
                 serverWriter.println("/newClient " + username);
-            } while (serverReader.readLine().equalsIgnoreCase("Invalid Username"));
+                reply = serverReader.readLine();
+            } while (reply.equalsIgnoreCase("Invalid Username"));
+            //print the welcome message
+            terminalReader.printAbove(reply);
 
             Runnable serverListener = () -> {
-                String message;
+                String response;
                 try {
                     while (running) {
-                        message = serverReader.readLine();
-                        if (message.equalsIgnoreCase("/disconnect")) {
+                        response = serverReader.readLine();
+                        if(response == null) {
                             break;
-                        } else {
-                            terminalReader.printAbove(message);
+                        }
+                        String typeOfResponse;
+                        String responseBody;
+
+                        response = response.trim();
+
+                        //if the server issues disconnect command
+                        if(response.equalsIgnoreCase("disconnect"))
+                            break;
+
+                        //when the response does not contain any 'type'
+                        if(!response.contains(":")) {
+                            ColorPrint.print(terminalReader, response, 208 /*orange color*/);
+                            continue;
+                        }
+
+
+                        //extracting the type of response and response body
+                        int colonIndex = response.indexOf(":");
+                        typeOfResponse = response.substring(0, colonIndex).trim();
+                        responseBody = response.substring(colonIndex +1).trim();
+
+
+                        switch (typeOfResponse) {
+                            case "Error": {
+                                ColorPrint.print(terminalReader, responseBody, AttributedStyle.RED);
+                                break;
+                            }
+                            case "Message": {
+                                String username = responseBody.split(":")[0].trim();
+
+                                String actualmessage = responseBody.split(":")[1].trim();
+                                ColorPrint.printUserMessage(terminalReader, username, actualmessage);
+
+                                break;
+                            }
+                            default: {
+                                ColorPrint.print(terminalReader, response, 208 /*orange color*/);
+                            }
                         }
                     }
                 } catch (IOException ex) {
@@ -93,9 +143,18 @@ public class ChatClient {
                 try {
                     while (running) {
                         message = this.terminalReader.readLine("> ");
+
+                        // Erase the previous line (the input line)
+                        terminal.puts(InfoCmp.Capability.cursor_up);   // move up
+                        terminal.puts(InfoCmp.Capability.carriage_return); // go to start of line
+                        terminal.puts(InfoCmp.Capability.clr_eol);    // clear it
+                        terminal.flush();
+
                         if (message != null) {
-                            if (!message.startsWith("/"))
+                            if (!message.startsWith("/")) {
                                 serverWriter.println("/message " + message);
+                                ColorPrint.printUserMessage(this.terminalReader, "you", message);
+                            }
                             else
                                 serverWriter.println(message);
                         }

@@ -23,6 +23,10 @@ import java.util.logging.Logger;
  */
 
 public class ChatServer implements AutoCloseable {
+    //constants:
+    private final int MAX_USERNAME_SIZE = 10;
+
+
     private static final Logger logger = Logger.getLogger(ChatServer.class.getName());
 
     private final ServerSocket serverSocket;
@@ -90,6 +94,14 @@ public class ChatServer implements AutoCloseable {
             connectionHandler.sendMessage(message);
         }
     }
+
+    public void broadcastExceptFor(String message, ConnectionHandler ignoreThisClient) {
+        for (ConnectionHandler connectionHandler : connections) {
+            if(connectionHandler != ignoreThisClient)
+                connectionHandler.sendMessage(message);
+        }
+    }
+
 
     public void removeConnection(ConnectionHandler handler) {
         connections.remove(handler);
@@ -195,21 +207,24 @@ public class ChatServer implements AutoCloseable {
                 clientWriter.println("Invalid Username");
                 return;
             }
-            clientWriter.println("Welcome to the chatroom " + usernameForNewUser);
-            broadcast("'" + usernameForNewUser + "' has just joined the chatroom");
+
+            if(usernameForNewUser.length() > MAX_USERNAME_SIZE) {
+                clientWriter.println("Invalid Username");
+                return;
+            }
+
+            sendMessage("Welcome to the chatroom " + usernameForNewUser);
+            broadcastExceptFor("'" + usernameForNewUser + "' has just joined the chatroom", this);
             this.username = usernameForNewUser;
             this.isNew = false;
         }
 
         void handleMessage(String message) {
             if(message == null) {
-                clientWriter.println("Please enter a valid message");
+                sendMessage("Error: Please enter a valid message");
                 return;
             }
-
-
-            //before broadcasting check if the username has already been set, this defines the validity of the client.
-            broadcast(username + ": " + message);
+            broadcastExceptFor("Message: " + username + ": " + message, this);
         }
 
         void handleChangeUsername(String newUsername) {
@@ -219,8 +234,7 @@ public class ChatServer implements AutoCloseable {
             }
             String oldUsername = username;
             this.username = newUsername;
-            clientWriter.println("'" + oldUsername+"'" + " changed their username to '" + newUsername + "'");
-
+            sendMessage("'" + oldUsername+"'" + " changed their username to '" + newUsername + "'");
         }
 
 
