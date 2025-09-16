@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 
@@ -58,11 +59,10 @@ public class ChatClient {
                     }
                 } catch (IOException ex) {
                     if (!clientSocket.isClosed()) {
-                        logger.warning("Connection Lost");
+                        logger.warning("IOException from Server Reader: Connection Lost");
                     }
                 } finally {
-                    logger.info("Client isn't listening to server anymore");
-
+                    logger.info("Turning Off Server Listener: Client isn't listening to server anymore");
                 }
             };
 
@@ -80,10 +80,11 @@ public class ChatClient {
                             else
                                 serverWriter.println(message);
                         }
+                        message = null;
                     }
-                    logger.info("Client isn't reading from the console");
+                    logger.info("Turning off Console Reader: Client isn't reading from the console");
                 } catch(IllegalStateException | IOException ex) {
-                    System.out.println("Console Scanner has been closed");
+                    System.out.println("IOEException from Console Scanner: Not Reading From Console");
                 }
             };
 
@@ -97,9 +98,16 @@ public class ChatClient {
         } catch (Exception e) {
             logger.info("Client failed to start or run");
         } finally {
-            logger.info("Client closed");
+            logger.info("Turning off the client: Client closed");
             if(executorService != null) {
                 executorService.shutdown();
+                try {
+                if(!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                   logger.severe("ExecutorService did not terminate in time");
+                }
+                } catch(InterruptedException e) {
+                    //interrupt can't happen
+                }
             }
         }
     }

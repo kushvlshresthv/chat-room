@@ -43,7 +43,7 @@ public class ChatServer implements AutoCloseable {
         try (ChatServer server = new ChatServer(8082)) {
             server.runServer();
         } catch (Exception e) {
-            logger.severe("Failed to start the server");
+            logger.severe("ERROR: Failed to start the server");
         }
     }
 
@@ -59,7 +59,7 @@ public class ChatServer implements AutoCloseable {
             }
         } catch (IOException e) {
             if (!serverSocket.isClosed()) {
-                logger.severe("Error accepting client connection");
+                logger.severe("Error: IOEException while accepting client connection");
             }
         } finally {
             logger.info("Server is no longer accepting new connections");
@@ -68,21 +68,19 @@ public class ChatServer implements AutoCloseable {
 
     @Override
     public void close() {
+        //first close all the connections
+        for (ConnectionHandler connectionHandler : connections) {
+            connectionHandler.close();
+        }
+        //close the Thread Pool
+        executorService.shutdown();
         try {
-            //first close all the connections
-            for (ConnectionHandler connectionHandler : connections) {
-                connectionHandler.close();
-            }
-
-            //close the Thread Pool
-            executorService.shutdown();
-
             //close the server
             if (!serverSocket.isClosed()) {
                 serverSocket.close();
             }
-        } catch (Exception e) {
-            logger.severe("Failed to close the server socket");
+        } catch (IOException e) {
+            logger.severe("Error while attempting to close the server");
         }
     }
 
@@ -200,7 +198,7 @@ public class ChatServer implements AutoCloseable {
                     clientWriter.close();
                     clientSocket.close();
                 } catch (IOException e) {
-                    logger.warning("Error closing the client socket from server side: " + username);
+                    logger.warning("Error while attempting to close the client socket associated with the username:" + username);
                 }
             }
         }
