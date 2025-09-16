@@ -34,7 +34,6 @@ public class ChatClient {
     Terminal terminal;
     LineReader terminalReader;
 
-
     public ChatClient(String hostname, int port) {
         this.hostname = hostname;
         this.port = port;
@@ -71,8 +70,12 @@ public class ChatClient {
                 serverWriter.println("/newClient " + username);
                 reply = serverReader.readLine();
             } while (reply.equalsIgnoreCase("Invalid Username"));
+
             //print the welcome message
-            terminalReader.printAbove(reply);
+            terminalReader.printAbove("--------------------------------------");
+            ColorPrint.print(terminalReader, reply, AttributedStyle.YELLOW /*orange color*/);
+            terminalReader.printAbove("--------------------------------------");
+
 
             Runnable serverListener = () -> {
                 String response;
@@ -93,7 +96,9 @@ public class ChatClient {
 
                         //when the response does not contain any 'type'
                         if(!response.contains(":")) {
+                            terminalReader.printAbove("--------------------------------------");
                             ColorPrint.print(terminalReader, response, 208 /*orange color*/);
+                            terminalReader.printAbove("--------------------------------------");
                             continue;
                         }
 
@@ -105,18 +110,22 @@ public class ChatClient {
 
 
                         switch (typeOfResponse) {
-                            case "Error": {
+                            case "Error":
+                            case "Disconnect": {
                                 ColorPrint.print(terminalReader, responseBody, AttributedStyle.RED);
                                 break;
                             }
                             case "Message": {
                                 String username = responseBody.split(":")[0].trim();
+                                int usernameColor = Integer.parseInt(responseBody.split(":")[1].trim());
 
-                                String actualmessage = responseBody.split(":")[1].trim();
-                                ColorPrint.printUserMessage(terminalReader, username, actualmessage);
+                                String actualmessage = responseBody.split(":")[2].trim();
+
+                                ColorPrint.printUserMessage(terminalReader, username, usernameColor ,actualmessage);
 
                                 break;
                             }
+
                             default: {
                                 ColorPrint.print(terminalReader, response, 208 /*orange color*/);
                             }
@@ -142,18 +151,20 @@ public class ChatClient {
                 String message = null;
                 try {
                     while (running) {
-                        message = this.terminalReader.readLine("> ");
+                        message = this.terminalReader.readLine("\n> ");
 
-                        // Erase the previous line (the input line)
-                        terminal.puts(InfoCmp.Capability.cursor_up);   // move up
-                        terminal.puts(InfoCmp.Capability.carriage_return); // go to start of line
-                        terminal.puts(InfoCmp.Capability.clr_eol);    // clear it
-                        terminal.flush();
+                        for(int i = 0; i<3; i++) {
+                            // Erase the previous line (the input line)
+                            terminal.puts(InfoCmp.Capability.cursor_up);   // move up
+                            terminal.puts(InfoCmp.Capability.carriage_return); // go to start of line
+                            terminal.puts(InfoCmp.Capability.clr_eol);    // clear it
+                            terminal.flush();
+                        }
 
                         if (message != null) {
                             if (!message.startsWith("/")) {
                                 serverWriter.println("/message " + message);
-                                ColorPrint.printUserMessage(this.terminalReader, "you", message);
+                                ColorPrint.printUserMessage(this.terminalReader, "you", 0, message);
                             }
                             else
                                 serverWriter.println(message);

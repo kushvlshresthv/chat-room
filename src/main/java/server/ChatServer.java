@@ -1,13 +1,14 @@
 package server;
 
 
+import utils.ColorAssigner;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -91,14 +92,14 @@ public class ChatServer implements AutoCloseable {
 
     public void broadcast(String message) {
         for (ConnectionHandler connectionHandler : connections) {
-            connectionHandler.sendMessage(message);
+            connectionHandler.send(message);
         }
     }
 
     public void broadcastExceptFor(String message, ConnectionHandler ignoreThisClient) {
         for (ConnectionHandler connectionHandler : connections) {
             if(connectionHandler != ignoreThisClient)
-                connectionHandler.sendMessage(message);
+                connectionHandler.send(message);
         }
     }
 
@@ -123,6 +124,7 @@ public class ChatServer implements AutoCloseable {
         String username;
         PrintWriter clientWriter;
         private boolean isNew;
+        int usernameColor;
 
         public ConnectionHandler(Socket clientSocket) {
             this.clientSocket = clientSocket;
@@ -190,7 +192,8 @@ public class ChatServer implements AutoCloseable {
                 }
 
                 case "/disconnect": {
-                    clientWriter.write("/disconnect");
+                    send("/disconnect");
+                    broadcastExceptFor("Disconnect: " + username + " has left the chat", this);
                     close();
                     break;
                     //this closes the socket, and since the socket is closed, run() faces an exception which logs Client Disconnected as a part of error handling.
@@ -203,45 +206,42 @@ public class ChatServer implements AutoCloseable {
         }
 
         void handleNewClient(String usernameForNewUser) {
-            if(usernameForNewUser == null) {
-                clientWriter.println("Invalid Username");
+            if(usernameForNewUser == null || usernameForNewUser.trim().isEmpty() || usernameForNewUser.length() > MAX_USERNAME_SIZE) {
+                send("Invalid Username");
                 return;
             }
 
-            if(usernameForNewUser.length() > MAX_USERNAME_SIZE) {
-                clientWriter.println("Invalid Username");
-                return;
-            }
-
-            sendMessage("Welcome to the chatroom " + usernameForNewUser);
-            broadcastExceptFor("'" + usernameForNewUser + "' has just joined the chatroom", this);
+            send("WELCOME TO THE CHATROOM " + usernameForNewUser);
+            broadcastExceptFor("'" + usernameForNewUser + "' has just joined the chat", this);
             this.username = usernameForNewUser;
+            this.usernameColor = ColorAssigner.getNextColor();
             this.isNew = false;
         }
 
         void handleMessage(String message) {
             if(message == null) {
-                sendMessage("Error: Please enter a valid message");
+                send("Error: Please enter a valid message");
                 return;
             }
-            broadcastExceptFor("Message: " + username + ": " + message, this);
+            broadcastExceptFor("Message: " + username + ": " + usernameColor +": " + message, this);
         }
 
         void handleChangeUsername(String newUsername) {
-            if(newUsername == null) {
+            if(newUsername == null || newUsername.trim().isEmpty() || newUsername.length() > MAX_USERNAME_SIZE) {
                 clientWriter.println("Please enter a valid username");
                 return;
             }
+
             String oldUsername = username;
             this.username = newUsername;
-            sendMessage("'" + oldUsername+"'" + " changed their username to '" + newUsername + "'");
+            send("'" + oldUsername+"'" + " changed their username to '" + newUsername + "'");
         }
 
 
         /**
          * used to send the message to client Socket
          */
-        public void sendMessage(String message) {
+        public void send(String message) {
             clientWriter.println(message);
         }
 
