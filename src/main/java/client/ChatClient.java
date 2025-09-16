@@ -28,6 +28,7 @@ public class ChatClient {
     private final String hostname;
     private final int port;
     ExecutorService executorService;
+    private String myUsername;
 
 
 
@@ -64,12 +65,14 @@ public class ChatClient {
 
 
             String reply;
+            String newUsername;
             do {
                 System.out.print("Enter your username: ");
-                String username = terminalReader.readLine();
-                serverWriter.println("/newClient " + username);
+                newUsername = terminalReader.readLine();
+                serverWriter.println("/newClient " + newUsername);
                 reply = serverReader.readLine();
             } while (reply.equalsIgnoreCase("Invalid Username"));
+            String myUsername = newUsername;
 
             //print the welcome message
             terminalReader.printAbove("--------------------------------------");
@@ -126,7 +129,7 @@ public class ChatClient {
                                 break;
                             }
 
-                            default: {
+                           default: {
                                 ColorPrint.print(terminalReader, response, 208 /*orange color*/);
                             }
                         }
@@ -151,9 +154,9 @@ public class ChatClient {
                 String message = null;
                 try {
                     while (running) {
-                        message = this.terminalReader.readLine("\n> ");
+                        message = this.terminalReader.readLine("\n"+ myUsername+"> ");
 
-                        for(int i = 0; i<3; i++) {
+                        for(int i = 0; i<2; i++) {
                             // Erase the previous line (the input line)
                             terminal.puts(InfoCmp.Capability.cursor_up);   // move up
                             terminal.puts(InfoCmp.Capability.carriage_return); // go to start of line
@@ -164,7 +167,7 @@ public class ChatClient {
                         if (message != null) {
                             if (!message.startsWith("/")) {
                                 serverWriter.println("/message " + message);
-                                ColorPrint.printUserMessage(this.terminalReader, "you", 0, message);
+                                ColorPrint.printMyMessage(this.terminalReader, message);
                             }
                             else
                                 serverWriter.println(message);
