@@ -50,21 +50,19 @@ public class ChatClient {
                     while (running) {
                         message = serverReader.readLine();
                         if (message.equalsIgnoreCase("/disconnect")) {
-                            synchronized (this) {
-                                notifyAll();
-                                running = false;
-                                break;
-                            }
+                            break;
                         } else {
                             System.out.println(message);
                         }
                     }
                 } catch (IOException ex) {
-                    if (!clientSocket.isClosed()) {
-                        logger.warning("IOException from Server Reader: Connection Lost");
-                    }
+                    logger.warning("IOException from Server Reader: cnnection Lost");
                 } finally {
+                    running = false;
                     logger.info("Turning Off Server Listener: Client isn't listening to server anymore");
+                    synchronized (this) {
+                        notifyAll();
+                    }
                 }
             };
 

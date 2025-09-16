@@ -110,9 +110,11 @@ public class ChatServer implements AutoCloseable {
         final private Socket clientSocket;
         String username;
         PrintWriter clientWriter;
+        private boolean isNew;
 
         public ConnectionHandler(Socket clientSocket) {
             this.clientSocket = clientSocket;
+            this.isNew = true;
         }
 
         @Override
@@ -146,12 +148,14 @@ public class ChatServer implements AutoCloseable {
                 command = payload.trim();
             }
 
+            //this is done to prevent client to explicitly execute /isNew command even when it is not a new client
+            if(isNew && command.equals("/newClient")) {
+                handleNewClient(body);
+                isNew = false;
+                return;
+            }
 
             switch (command) {
-                case "/newClient": {
-                    handleNewClient(body);
-                    break;
-                }
                 case "/message": {
                     handleMessage(body);
                     break;
