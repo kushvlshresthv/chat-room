@@ -1,5 +1,10 @@
 package client;
 
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -19,10 +24,22 @@ public class ChatClient {
     private final int port;
     ExecutorService executorService;
 
+
+    Terminal terminal;
+    LineReader terminalReader;
+
+
     public ChatClient(String hostname, int port) {
         this.hostname = hostname;
         this.port = port;
+        try {
+            this.terminal = TerminalBuilder.builder().system(true).build();
+            this.terminalReader = LineReaderBuilder.builder().terminal(terminal).build();
+        } catch (IOException e) {
+            logger.severe("Could not initialize terminal");
+        }
     }
+
 
     public static void main(String[] args) {
         ChatClient client = new ChatClient("localhost", 8082);
@@ -40,9 +57,9 @@ public class ChatClient {
 
             do {
                 System.out.print("Enter your username: ");
-                String username = consoleBufferedReader.readLine();
+                String username = terminalReader.readLine();
                 serverWriter.println("/newClient " + username);
-            } while(serverReader.readLine().equalsIgnoreCase("Invalid Username"));
+            } while (serverReader.readLine().equalsIgnoreCase("Invalid Username"));
 
             Runnable serverListener = () -> {
                 String message;
@@ -52,13 +69,18 @@ public class ChatClient {
                         if (message.equalsIgnoreCase("/disconnect")) {
                             break;
                         } else {
-                            System.out.println(message);
+                            terminalReader.printAbove(message);
                         }
                     }
                 } catch (IOException ex) {
                     logger.warning("IOException from Server Reader: cnnection Lost");
                 } finally {
                     running = false;
+                    try {
+                        terminal.close();
+                    } catch (IOException e) {
+                        logger.severe("Terminal could not be closed");
+                    }
                     logger.info("Turning Off Server Listener: Client isn't listening to server anymore");
                     synchronized (this) {
                         notifyAll();
@@ -66,15 +88,12 @@ public class ChatClient {
                 }
             };
 
-            Runnable consoleReader = () -> {
+            Runnable terminalReader = () -> {
                 String message = null;
                 try {
                     while (running) {
-                        if(consoleBufferedReader.ready()) {
-                           message = consoleBufferedReader.readLine();
-                        }
-
-                        if(message != null) {
+                        message = this.terminalReader.readLine("> ");
+                        if (message != null) {
                             if (!message.startsWith("/"))
                                 serverWriter.println("/message " + message);
                             else
@@ -83,13 +102,13 @@ public class ChatClient {
                         message = null;
                     }
                     logger.info("Turning off Console Reader: Client isn't reading from the console");
-                } catch(IllegalStateException | IOException ex) {
-                    System.out.println("IOEException from Console Scanner: Not Reading From Console");
+                } catch (Exception ex) {
+                    System.out.println("Exception from Terminal Reader: Not Reading From Terminal");
                 }
             };
 
             executorService.submit(serverListener);
-            executorService.submit(consoleReader);
+            executorService.submit(terminalReader);
 
             synchronized (this) {
                 wait();
@@ -99,13 +118,13 @@ public class ChatClient {
             logger.info("Client failed to start or run");
         } finally {
             logger.info("Turning off the client: Client closed");
-            if(executorService != null) {
+            if (executorService != null) {
                 executorService.shutdown();
                 try {
-                if(!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
-                   logger.severe("ExecutorService did not terminate in time");
-                }
-                } catch(InterruptedException e) {
+                    if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                        logger.severe("ExecutorService did not terminate in time");
+                    }
+                } catch (InterruptedException e) {
                     //interrupt can't happen
                 }
             }

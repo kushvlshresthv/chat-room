@@ -136,11 +136,18 @@ public class ChatServer implements AutoCloseable {
 
         public void handlePayLoad(String payload) {
             payload = payload.trim();
-            int spaceIndex = payload.indexOf(" ");
-
             String command = null;
             String body = null;
 
+            int spaceIndex = payload.indexOf(" ");
+
+            if(payload.isEmpty()) {
+                clientWriter.println("Invalid payload: format should be 'command <space> body'");
+                return;
+            }
+
+            //extracting the command and body
+            //some payoads may not have body such as '/disconnect'
             if(spaceIndex != -1 && !payload.substring(spaceIndex + 1).trim().isEmpty()) {
                 command = payload.substring(0, spaceIndex).trim();
                 body = payload.substring(spaceIndex + 1).trim();
@@ -149,9 +156,13 @@ public class ChatServer implements AutoCloseable {
             }
 
             //this is done to prevent client to explicitly execute /isNew command even when it is not a new client
-            if(isNew && command.equals("/newClient")) {
-                handleNewClient(body);
-                isNew = false;
+            if(isNew) {
+                if(command.equals("/newClient")) {
+                    handleNewClient(body);
+                    return;
+                }
+                //the cient is new but trying to execute any other command
+                clientWriter.println("Before using other commands, register with /newClient command with a valid username");
                 return;
             }
 
@@ -187,6 +198,7 @@ public class ChatServer implements AutoCloseable {
             clientWriter.println("Welcome to the chatroom " + usernameForNewUser);
             broadcast("'" + usernameForNewUser + "' has just joined the chatroom");
             this.username = usernameForNewUser;
+            this.isNew = false;
         }
 
         void handleMessage(String message) {
@@ -201,6 +213,13 @@ public class ChatServer implements AutoCloseable {
         }
 
         void handleChangeUsername(String newUsername) {
+            if(newUsername == null) {
+                clientWriter.println("Please enter a valid username");
+                return;
+            }
+            String oldUsername = username;
+            this.username = newUsername;
+            clientWriter.println("'" + oldUsername+"'" + " changed their username to '" + newUsername + "'");
 
         }
 
