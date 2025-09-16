@@ -38,9 +38,11 @@ public class ChatClient {
                 BufferedReader serverReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 BufferedReader consoleBufferedReader = new BufferedReader(new InputStreamReader(System.in))) {
 
-            System.out.print("Enter your username: ");
-            String username = consoleBufferedReader.readLine();
-            serverWriter.println("/newClient:" + username);
+            do {
+                System.out.print("Enter your username: ");
+                String username = consoleBufferedReader.readLine();
+                serverWriter.println("/newClient " + username);
+            } while(serverReader.readLine().equalsIgnoreCase("Invalid Username"));
 
             Runnable serverListener = () -> {
                 String message;
@@ -76,7 +78,7 @@ public class ChatClient {
 
                         if(message != null) {
                             if (!message.startsWith("/"))
-                                serverWriter.println("/message:" + message);
+                                serverWriter.println("/message " + message);
                             else
                                 serverWriter.println(message);
                         }

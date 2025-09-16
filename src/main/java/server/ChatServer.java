@@ -126,30 +126,39 @@ public class ChatServer implements AutoCloseable {
                 while ((payload = clientReader.readLine()) != null) {
                     handlePayLoad(payload);
                 }
-            } catch (Exception e) {
+            } catch (IOException e) {
                 logger.info("Client " + username + " disconnected " + e.getMessage());
             }
         }
 
 
         public void handlePayLoad(String payload) {
-            String command = payload.split(":")[0];
+            payload = payload.trim();
+            int spaceIndex = payload.indexOf(" ");
+
+            String command = null;
+            String body = null;
+
+            if(spaceIndex != -1 && !payload.substring(spaceIndex + 1).trim().isEmpty()) {
+                command = payload.substring(0, spaceIndex).trim();
+                body = payload.substring(spaceIndex + 1).trim();
+            } else {
+                command = payload.trim();
+            }
+
 
             switch (command) {
                 case "/newClient": {
-                    String usernameForNewUser = payload.split(":")[1];
-                    handleNewClient(usernameForNewUser);
+                    handleNewClient(body);
                     break;
                 }
                 case "/message": {
-                    String message = payload.split(":")[1];
-                    handleMessage(message);
+                    handleMessage(body);
                     break;
                 }
 
                 case "/changeUsername": {
-                    String newUsername = payload.split(":")[1];
-                    handleChangeUsername(newUsername);
+                    handleChangeUsername(body);
                     break;
                 }
 
@@ -164,16 +173,26 @@ public class ChatServer implements AutoCloseable {
                     clientWriter.println("Wrong Command");
                 }
             }
-
         }
 
         void handleNewClient(String usernameForNewUser) {
+            if(usernameForNewUser == null) {
+                clientWriter.println("Invalid Username");
+                return;
+            }
             clientWriter.println("Welcome to the chatroom " + usernameForNewUser);
             broadcast("'" + usernameForNewUser + "' has just joined the chatroom");
             this.username = usernameForNewUser;
         }
 
         void handleMessage(String message) {
+            if(message == null) {
+                clientWriter.println("Please enter a valid message");
+                return;
+            }
+
+
+            //before broadcasting check if the username has already been set, this defines the validity of the client.
             broadcast(username + ": " + message);
         }
 
