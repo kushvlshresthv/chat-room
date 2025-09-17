@@ -28,7 +28,7 @@ public class ChatClient {
     private final String hostname;
     private final int port;
     ExecutorService executorService;
-    private String myUsername;
+    private volatile String myUsername;
 
 
 
@@ -56,6 +56,9 @@ public class ChatClient {
 
 
     public void runClient() {
+        //shared Lock object
+        final Object lock = new Object();
+
         executorService = Executors.newFixedThreadPool(2);
         try (
                 Socket clientSocket = new Socket(hostname, port);
@@ -72,7 +75,7 @@ public class ChatClient {
                 serverWriter.println("/newClient " + newUsername);
                 reply = serverReader.readLine();
             } while (reply.equalsIgnoreCase("Invalid Username"));
-            String myUsername = newUsername;
+            setMyUsername(newUsername);
 
             //print the welcome message
             terminalReader.printAbove("--------------------------------------");
@@ -80,7 +83,7 @@ public class ChatClient {
             terminalReader.printAbove("--------------------------------------");
 
 
-            Runnable serverListener = () -> {
+            Runnable serverListenerTask = () -> {
                 String response;
                 try {
                     while (running) {
@@ -129,6 +132,16 @@ public class ChatClient {
                                 break;
                             }
 
+                            case "UsernameChanged": {
+                                setMyUsername(responseBody.split(":")[0].trim());
+                                String actualMessage = responseBody.split(":")[1].trim();
+                                ColorPrint.print(this.terminalReader, actualMessage, AttributedStyle.YELLOW);
+                                synchronized (lock) {
+                                    lock.notifyAll();
+                                }
+                                break;
+                            }
+
                            default: {
                                 ColorPrint.print(terminalReader, response, 208 /*orange color*/);
                             }
@@ -150,11 +163,12 @@ public class ChatClient {
                 }
             };
 
-            Runnable terminalReader = () -> {
+            Runnable terminalReaderTask = () -> {
                 String message = null;
                 try {
                     while (running) {
-                        message = this.terminalReader.readLine("\n"+ myUsername+"> ");
+                        String prompt = "\n" + myUsername + "> ";
+                        message = this.terminalReader.readLine(prompt);
 
                         for(int i = 0; i<2; i++) {
                             // Erase the previous line (the input line)
@@ -168,6 +182,13 @@ public class ChatClient {
                             if (!message.startsWith("/")) {
                                 serverWriter.println("/message " + message);
                                 ColorPrint.printMyMessage(this.terminalReader, message);
+                            } else if(message.contains("/changeUsername")) {
+                                serverWriter.println(message);
+                                synchronized (lock) {
+                                    lock.wait();
+                                    //thread waits until changeUsername is accepted by the server
+                                    //if this is not done, it renders the old username for prompting input
+                                }
                             }
                             else
                                 serverWriter.println(message);
@@ -180,8 +201,8 @@ public class ChatClient {
                 }
             };
 
-            executorService.submit(serverListener);
-            executorService.submit(terminalReader);
+            executorService.submit(serverListenerTask);
+            executorService.submit(terminalReaderTask);
 
             synchronized (this) {
                 wait();
@@ -201,6 +222,11 @@ public class ChatClient {
                     //interrupt can't happen
                 }
             }
+
         }
+
+    }
+    private void setMyUsername(String username) {
+        this.myUsername = username;
     }
 }

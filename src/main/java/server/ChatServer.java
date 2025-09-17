@@ -234,7 +234,8 @@ public class ChatServer implements AutoCloseable {
 
             String oldUsername = username;
             this.username = newUsername;
-            send("'" + oldUsername+"'" + " changed their username to '" + newUsername + "'");
+            broadcastExceptFor("'" + oldUsername+"'" + " changed their username to '" + newUsername + "'", this);
+            send("UsernameChanged: " + newUsername + ": Username successfully changed to '" + newUsername + "'");
         }
 
 
