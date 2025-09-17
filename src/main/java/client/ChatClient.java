@@ -67,20 +67,36 @@ public class ChatClient {
                 BufferedReader consoleBufferedReader = new BufferedReader(new InputStreamReader(System.in))) {
 
 
-            String reply;
-            String newUsername;
+            //initial authentication
+
             do {
+                String reply;
+                String newUsername;
                 System.out.print("Enter your username: ");
                 newUsername = terminalReader.readLine();
                 serverWriter.println("/newClient " + newUsername);
                 reply = serverReader.readLine();
-            } while (reply.equalsIgnoreCase("Invalid Username"));
-            setMyUsername(newUsername);
 
-            //print the welcome message
-            terminalReader.printAbove("--------------------------------------");
-            ColorPrint.print(terminalReader, reply, AttributedStyle.YELLOW /*orange color*/);
-            terminalReader.printAbove("--------------------------------------");
+                if(reply.contains(":")) {
+
+                    String typeOfResponse = reply.substring(0, reply.indexOf(":"));
+                    String responseBody = reply.substring(reply.indexOf(":") + 1);
+
+                    if(typeOfResponse.equalsIgnoreCase("Error")) {
+                        ColorPrint.print(terminalReader, responseBody.trim(), AttributedStyle.RED);
+                    }
+
+                    else if(typeOfResponse.equalsIgnoreCase("Success")) {
+                        //print the welcome message
+                        terminalReader.printAbove("--------------------------------------");
+                        ColorPrint.print(terminalReader, responseBody, AttributedStyle.YELLOW /*orange color*/);
+                        terminalReader.printAbove("--------------------------------------");
+                        setMyUsername(newUsername);
+                        break;
+                    }
+                }
+            } while (true);
+
 
 
             Runnable serverListenerTask = () -> {
@@ -136,6 +152,16 @@ public class ChatClient {
                                 setMyUsername(responseBody.split(":")[0].trim());
                                 String actualMessage = responseBody.split(":")[1].trim();
                                 ColorPrint.print(this.terminalReader, actualMessage, AttributedStyle.YELLOW);
+
+                                //terminalReaderTask is waiting whether the change is success or failure to display the messge prompt.
+                                synchronized (lock) {
+                                    lock.notifyAll();
+                                }
+                                break;
+                            }
+
+                            case "UsernameChangeFailed": {
+                                ColorPrint.print(terminalReader, responseBody, AttributedStyle.RED);
                                 synchronized (lock) {
                                     lock.notifyAll();
                                 }
@@ -224,7 +250,6 @@ public class ChatClient {
             }
 
         }
-
     }
     private void setMyUsername(String username) {
         this.myUsername = username;

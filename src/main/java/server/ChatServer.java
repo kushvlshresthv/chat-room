@@ -9,8 +9,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -32,8 +31,9 @@ public class ChatServer implements AutoCloseable {
 
     private final ServerSocket serverSocket;
 
-    //everyting we modify the list, it entire underlying array is copied into a new one and then modification is applied on that new copy
-    private final List<ConnectionHandler> connections = new CopyOnWriteArrayList<ConnectionHandler>();
+    // CopyOnWriteArrayList: modifications (add/remove) create a new array copy.
+    // Threads already iterating see the old snapshot; new iterations/readers see the updated list.
+    private final ConcurrentHashMap<String, ConnectionHandler> connections = new ConcurrentHashMap<>();
 
     private final ExecutorService executorService;
 
@@ -59,7 +59,6 @@ public class ChatServer implements AutoCloseable {
                 Socket clientSocket = serverSocket.accept();
                 logger.info("New client connected: " + clientSocket.getInetAddress());
                 ConnectionHandler connectionHandler = new ConnectionHandler(clientSocket);
-                connections.add(connectionHandler);
                 executorService.execute(connectionHandler);
             }
         } catch (IOException e) {
@@ -74,7 +73,7 @@ public class ChatServer implements AutoCloseable {
     @Override
     public void close() {
         //first close all the connections
-        for (ConnectionHandler connectionHandler : connections) {
+        for (ConnectionHandler connectionHandler : connections.values()) {
             connectionHandler.close();
         }
         //close the Thread Pool
@@ -91,13 +90,13 @@ public class ChatServer implements AutoCloseable {
 
 
     public void broadcast(String message) {
-        for (ConnectionHandler connectionHandler : connections) {
+        for (ConnectionHandler connectionHandler : connections.values()) {
             connectionHandler.send(message);
         }
     }
 
     public void broadcastExceptFor(String message, ConnectionHandler ignoreThisClient) {
-        for (ConnectionHandler connectionHandler : connections) {
+        for (ConnectionHandler connectionHandler : connections.values()) {
             if(connectionHandler != ignoreThisClient)
                 connectionHandler.send(message);
         }
@@ -105,7 +104,14 @@ public class ChatServer implements AutoCloseable {
 
 
     public void removeConnection(ConnectionHandler handler) {
-        connections.remove(handler);
+        connections.remove(handler.username);
+    }
+
+    /**
+     * adds the parameter to the HashMap with its username as key
+     */
+    public void addConnection(ConnectionHandler handler) {
+        connections.put(handler.username, handler);
     }
 
 
@@ -144,6 +150,7 @@ public class ChatServer implements AutoCloseable {
                 }
             } catch (IOException e) {
                 logger.info("Client " + username + " disconnected " + e.getMessage());
+                close();
             }
         }
 
@@ -206,15 +213,27 @@ public class ChatServer implements AutoCloseable {
         }
 
         void handleNewClient(String usernameForNewUser) {
-            if(usernameForNewUser == null || usernameForNewUser.trim().isEmpty() || usernameForNewUser.length() > MAX_USERNAME_SIZE) {
-                send("Invalid Username");
+            if(usernameForNewUser == null || usernameForNewUser.trim().isEmpty()) {
+                send("Error: Invalid Username");
                 return;
             }
 
-            send("WELCOME TO THE CHATROOM " + usernameForNewUser);
-            broadcastExceptFor("'" + usernameForNewUser + "' has just joined the chat", this);
+            if(usernameForNewUser.length() > MAX_USERNAME_SIZE) {
+                send("Error: Username too long [10 characters max]");
+                return;
+            }
+
+            if(connections.containsKey(usernameForNewUser)) {
+                send("Error: Username is already in use");
+                return;
+            }
+
+            //valid username:
+            send("Success: WELCOME TO THE CHATROOM " + usernameForNewUser);
+            broadcastExceptFor("'" + usernameForNewUser + "' has joined the chat", this);
             this.username = usernameForNewUser;
             this.usernameColor = ColorAssigner.getNextColor();
+            addConnection(this);
             this.isNew = false;
         }
 
@@ -227,16 +246,31 @@ public class ChatServer implements AutoCloseable {
         }
 
         void handleChangeUsername(String newUsername) {
-            if(newUsername == null || newUsername.trim().isEmpty() || newUsername.length() > MAX_USERNAME_SIZE) {
-                clientWriter.println("Please enter a valid username");
+            //To see why UsernameChangeFailed used instead of 'Error', see Client implementation
+            if(newUsername == null || newUsername.trim().isEmpty()) {
+                send("UsernameChangeFailed: Username shouldn't be empty");
+                return;
+            }
+
+
+            if(newUsername.length() > MAX_USERNAME_SIZE) {
+                send("UsernameChangeFailed: Username too long [10 characters max]");
+                return;
+            }
+
+            if(connections.containsKey(newUsername)) {
+                send("UsernameChangeFailed: Username is already in use");
                 return;
             }
 
             String oldUsername = username;
             this.username = newUsername;
+            removeConnection(this); //old username as key is removed
+            addConnection(this);
             broadcastExceptFor("'" + oldUsername+"'" + " changed their username to '" + newUsername + "'", this);
             send("UsernameChanged: " + newUsername + ": Username successfully changed to '" + newUsername + "'");
         }
+
 
 
         /**
@@ -258,6 +292,7 @@ public class ChatServer implements AutoCloseable {
                     logger.warning("Error while attempting to close the client socket associated with the username:" + username);
                 }
             }
+            removeConnection(this);
         }
     }
 }
