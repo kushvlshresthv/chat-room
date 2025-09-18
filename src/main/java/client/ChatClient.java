@@ -83,14 +83,13 @@ public class ChatClient {
                     String responseBody = reply.substring(reply.indexOf(":") + 1);
 
                     if(typeOfResponse.equalsIgnoreCase("Error")) {
-                        ColorPrint.print(terminalReader, responseBody.trim(), AttributedStyle.RED);
+                        ColorPrint.printAtCenterWithBox(terminalReader, responseBody.trim(), AttributedStyle.RED);
                     }
 
                     else if(typeOfResponse.equalsIgnoreCase("Success")) {
                         //print the welcome message
-                        terminalReader.printAbove("--------------------------------------");
-                        ColorPrint.print(terminalReader, responseBody, AttributedStyle.YELLOW /*orange color*/);
-                        terminalReader.printAbove("--------------------------------------");
+                        ColorPrint.printAtCenterWithBox(terminalReader, responseBody, AttributedStyle.YELLOW /*orange color*/);
+
                         setMyUsername(newUsername);
                         break;
                     }
@@ -118,9 +117,7 @@ public class ChatClient {
 
                         //when the response does not contain any 'type'
                         if(!response.contains(":")) {
-                            terminalReader.printAbove("--------------------------------------");
-                            ColorPrint.print(terminalReader, response, 208 /*orange color*/);
-                            terminalReader.printAbove("--------------------------------------");
+                            ColorPrint.printAtCenterWithBox(terminalReader, response, 208 /*orange color*/);
                             continue;
                         }
 
@@ -134,7 +131,7 @@ public class ChatClient {
                         switch (typeOfResponse) {
                             case "Error":
                             case "Disconnect": {
-                                ColorPrint.print(terminalReader, responseBody, AttributedStyle.RED);
+                                ColorPrint.printAtCenterWithBox(terminalReader, responseBody, AttributedStyle.RED);
                                 break;
                             }
                             case "Message": {
@@ -151,7 +148,7 @@ public class ChatClient {
                             case "UsernameChanged": {
                                 setMyUsername(responseBody.split(":")[0].trim());
                                 String actualMessage = responseBody.split(":")[1].trim();
-                                ColorPrint.print(this.terminalReader, actualMessage, AttributedStyle.YELLOW);
+                                ColorPrint.printAtCenterWithBox(this.terminalReader, actualMessage, AttributedStyle.YELLOW);
 
                                 //terminalReaderTask is waiting whether the change is success or failure to display the messge prompt.
                                 synchronized (lock) {
@@ -161,7 +158,7 @@ public class ChatClient {
                             }
 
                             case "UsernameChangeFailed": {
-                                ColorPrint.print(terminalReader, responseBody, AttributedStyle.RED);
+                                ColorPrint.printAtCenterWithBox(terminalReader, responseBody, AttributedStyle.RED);
                                 synchronized (lock) {
                                     lock.notifyAll();
                                 }
@@ -169,7 +166,7 @@ public class ChatClient {
                             }
 
                            default: {
-                                ColorPrint.print(terminalReader, response, 208 /*orange color*/);
+                                ColorPrint.printAtCenterWithBox(terminalReader, response, 208 /*orange color*/);
                             }
                         }
                     }
