@@ -16,6 +16,7 @@ public class ColorPrint {
      * */
     private static final int MAX_AVAILABLE_LENGTH = TOTAL_LINE_LENGTH / 2;
     private static final int COLOR_GRAY = 238;
+    private static final int COLOR_DARK_GRAY = 237;
 
     public static void print(LineReader reader, String message, int color) {
         AttributedString colored = new AttributedString(message,
@@ -75,18 +76,25 @@ public class ColorPrint {
                     line.append(tokens[tokenCounter]).append(" ");
                     tokenCounter++;
                 }
-                if (messagesWithColor.isEmpty()) {
-                    lineWithColor.append(username, AttributedStyle.DEFAULT.foreground(usernameColor));
-                    lineWithColor.append(": ");
-                    lineWithColor.append(line, AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN));
-                    messagesWithColor.add(lineWithColor);
-                    lineWithColor = new AttributedStringBuilder();
-                    line = new StringBuilder();
+
+                line.insert(0, " ");
+
+                //making all lines length = MAX_AVAILABLE_LENGTH by appending <space>
+                line.append(" ".repeat(MAX_AVAILABLE_LENGTH - line.length()));
+
+                if(messagesWithColor.isEmpty()) {
+                    lineWithColor.append(username, AttributedStyle.DEFAULT.foreground(usernameColor)).append(": ");
                 } else {
-                    messagesWithColor.add(lineWithColor.append(" ".repeat(MAX_USERNAME_LENGTH + 2 /*accounts for :<space> */) + line.toString(), AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN)));
-                    lineWithColor = new AttributedStringBuilder();
-                    line = new StringBuilder();
+                    //prepend non-first line with spaces for alignment
+                    lineWithColor.append(" ".repeat(12)); //10 for username + ":" + " "
                 }
+
+                lineWithColor.append(line, AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE).background(COLOR_DARK_GRAY));
+
+                messagesWithColor.add(lineWithColor);
+
+                lineWithColor = new AttributedStringBuilder();
+                line = new StringBuilder();
             }
             while (!messagesWithColor.isEmpty()) {
                 reader.printAbove(messagesWithColor.poll().toAnsi());
@@ -97,7 +105,7 @@ public class ColorPrint {
 
             lineWithColor.append(": ");
 
-            lineWithColor.append(message, AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN));
+            lineWithColor.append(" " + message + " ", AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE).background(COLOR_DARK_GRAY));
 
             // Print using printAbove so prompt is redrawn correctly
             reader.printAbove(lineWithColor.toAnsi());
