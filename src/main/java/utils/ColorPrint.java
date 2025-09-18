@@ -10,8 +10,9 @@ import java.util.Queue;
 
 public class ColorPrint {
 
-    static int MAX_LINE_LENGTH = 50;
-    static int MAX_AVAILABLE_LENGTH = 50 / 2;
+    static int MAX_LINE_LENGTH = 80;
+    static int MAX_AVAILABLE_LENGTH = MAX_LINE_LENGTH / 2;
+    private static final int COLOR_GRAY = 238;
 
     public static void print(LineReader reader, String message, int color) {
         AttributedString colored = new AttributedString(message,
@@ -84,22 +85,38 @@ public class ColorPrint {
         if (message.length() > MAX_LINE_LENGTH) {
             messages = new LinkedList<>();
             String[] tokens = message.split(" ");
+            //string builder is used so the string is changed frequently
             StringBuilder line = new StringBuilder();
 
             int tokenCounter = 0;
 
+            //append the required amount of spaces
             while (tokenCounter < tokens.length) {
                 while (tokenCounter < tokens.length &&
                         line.length() + tokens[tokenCounter].length() + 1 /* for <space> appended at the end*/ < MAX_AVAILABLE_LENGTH) {
                     line.append(tokens[tokenCounter]).append(" ");
+                    //background colors to the line
                     tokenCounter++;
                 }
+                //removing the last <space>
+                line.deleteCharAt(line.length() - 1);
+
+                //adding a space in the beginning of the line
+                line.insert(0, " ");
+
+                //making each line the same length for consistent background
+                line.append(" ".repeat(MAX_AVAILABLE_LENGTH - line.length()));
+
+                String lineWithBackground = new AttributedString(line.toString(), AttributedStyle.DEFAULT.background(COLOR_GRAY)).toAnsi();
+
                 if (messages.isEmpty()) {
-                    messages.add(String.format("%" + MAX_LINE_LENGTH + "s", line.toString()));
+                    //first line
+                    messages.add(String.format("%" + MAX_LINE_LENGTH + "s", lineWithBackground));
                     line = new StringBuilder();
                 } else {
+                    //rest of the lines padding based on the line length of the first line
                     int padding = MAX_LINE_LENGTH - messages.peek().trim().length() - 1;
-                    messages.add(" ".repeat(padding) + line.toString());
+                    messages.add(" ".repeat(padding) + lineWithBackground);
                     line = new StringBuilder();
                 }
             }
@@ -107,7 +124,8 @@ public class ColorPrint {
                 reader.printAbove(messages.poll());
             }
         } else {
-            message = String.format("%" + MAX_LINE_LENGTH + "s", message);
+            String messageWithBackground = new AttributedString(" " + message + " ", AttributedStyle.DEFAULT.background(COLOR_GRAY)).toAnsi();
+            message = String.format("%" + MAX_LINE_LENGTH + "s", messageWithBackground);
             reader.printAbove(message);
         }
     }
