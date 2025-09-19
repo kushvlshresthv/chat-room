@@ -67,49 +67,7 @@ public class ChatClient {
                 BufferedReader consoleBufferedReader = new BufferedReader(new InputStreamReader(System.in))) {
 
 
-            //initial authentication
-
-            String loginPrompt = "Enter your username: ";
-            String command = "/newClient";
-            do {
-                String reply;
-                System.out.print(loginPrompt);
-                String credentials = terminalReader.readLine();
-                serverWriter.println(command + " " + credentials);
-                reply = serverReader.readLine();
-
-                if(credentials.equalsIgnoreCase("/adminLogin")) {
-                    loginPrompt = "Enter admin credentials [username--password]:  ";
-                    command = "/adminLogin";
-                    continue;
-                }
-                if(credentials.equalsIgnoreCase("/newClient")) {
-                    loginPrompt = "Enter your username: ";
-                    command = "/newClient";
-                    continue;
-                }
-
-                if(reply.contains(":")) {
-                    String typeOfResponse = reply.substring(0, reply.indexOf(":"));
-                    String responseBody = reply.substring(reply.indexOf(":") + 1);
-
-                    if(typeOfResponse.equalsIgnoreCase("Error")) {
-                        ColorPrint.printAtCenterWithBox(terminalReader, responseBody.trim(), AttributedStyle.RED);
-                    }
-
-                    else if(typeOfResponse.equalsIgnoreCase("Success")) {
-                        //print the welcome message
-                        ColorPrint.printAtCenterWithBox(terminalReader, responseBody, CustomColors.YELLOW /*orange color*/);
-
-                        if(command.equals("/adminLogin")) {
-                            setMyUsername(credentials.substring(0, credentials.indexOf("-")));
-                        } else
-                            setMyUsername(credentials);
-                        break;
-                    }
-                }
-            } while (true);
-
+            handleInitialAuthentication(serverWriter, serverReader);
 
 
             Runnable serverListenerTask = () -> {
@@ -220,6 +178,12 @@ public class ChatClient {
                 }
             };
 
+
+
+
+
+
+
             Runnable terminalReaderTask = () -> {
                 String message = null;
                 try {
@@ -284,5 +248,50 @@ public class ChatClient {
     }
     private void setMyUsername(String username) {
         this.myUsername = username;
+    }
+
+
+    private void handleInitialAuthentication (PrintWriter serverWriter, BufferedReader serverReader) throws IOException {
+        String loginPrompt = "Enter your username: ";
+        String command = "/newClient";
+        do {
+            String reply;
+            System.out.print(loginPrompt);
+            String credentials = terminalReader.readLine();
+
+            if(credentials.equalsIgnoreCase("/adminLogin")) {
+                loginPrompt = "Enter admin credentials [username--password]:  ";
+                command = "/adminLogin";
+                continue;
+            }
+            if(credentials.equalsIgnoreCase("/newClient")) {
+                loginPrompt = "Enter your username: ";
+                command = "/newClient";
+                continue;
+            }
+
+            serverWriter.println(command + " " + credentials);
+            reply = serverReader.readLine();
+
+            if(reply.contains(":")) {
+                String typeOfResponse = reply.substring(0, reply.indexOf(":"));
+                String responseBody = reply.substring(reply.indexOf(":") + 1);
+
+                if(typeOfResponse.equalsIgnoreCase("Error")) {
+                    ColorPrint.printAtCenterWithBox(terminalReader, responseBody.trim(), AttributedStyle.RED);
+                }
+
+                else if(typeOfResponse.equalsIgnoreCase("Success")) {
+                    //print the welcome message
+                    ColorPrint.printAtCenterWithBox(terminalReader, responseBody, CustomColors.YELLOW /*orange color*/);
+
+                    if(command.equals("/adminLogin")) {
+                        setMyUsername(credentials.substring(0, credentials.indexOf("-")));
+                    } else
+                        setMyUsername(credentials);
+                    break;
+                }
+            }
+        } while (true);
     }
 }

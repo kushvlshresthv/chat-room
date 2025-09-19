@@ -211,8 +211,8 @@ public class ChatServer implements AutoCloseable {
 
                 case "/changeUsername": {
                     if(isAdmin) {
-                        send("Error: admin can't change their username");
-                        return;
+                        send("UsernameChangeFailed: admin can't change their username");
+                        break;
                     }
                     handleChangeUsername(body);
                     break;
@@ -224,6 +224,7 @@ public class ChatServer implements AutoCloseable {
                         break;
                     } else {
                         send("Error: only admins can use /ban command");
+                        break;
                     }
                 }
 
@@ -280,12 +281,13 @@ public class ChatServer implements AutoCloseable {
 
 
         void handleAdminLogin(String username, String password) {
-            if(!(username.equals("admin") && password.equals("admin"))) {
+            if(!(username.equals("admin") &&  password.equals("admin"))) {
                send("Error: Incorrect Credentials");
                return;
             }
             if(connections.containsKey("admin")) {
                 send("Error: Admin is already logged in");
+                return;
             }
             this.username = "admin";
             this.usernameColor = CustomColors.BRIGHT_RED;
