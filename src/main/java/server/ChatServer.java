@@ -2,6 +2,7 @@ package server;
 
 
 import utils.ColorAssigner;
+import utils.CustomColors;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -130,6 +131,7 @@ public class ChatServer implements AutoCloseable {
         String username;
         PrintWriter clientWriter;
         private boolean isNew;
+        private boolean isAdmin  =false;
         int usernameColor;
 
         public ConnectionHandler(Socket clientSocket) {
@@ -176,6 +178,20 @@ public class ChatServer implements AutoCloseable {
                 command = payload.trim();
             }
 
+            if(command.equals("/adminLogin")) {
+                String username;
+                String password;
+                if(body != null && body.contains("--")) {
+                    username = body.trim().split("--")[0];
+                    password = body.trim().split("--")[1];
+                    handleAdminLogin(username, password);
+                    return;
+                }
+                send("Error: /adminLogin requires credentials: <username>--<password>");
+                return;
+            }
+
+
             //this is done to prevent client to explicitly execute /isNew command even when it is not a new client
             if(isNew) {
                 if(command.equals("/newClient")) {
@@ -183,7 +199,7 @@ public class ChatServer implements AutoCloseable {
                     return;
                 }
                 //the cient is new but trying to execute any other command
-                clientWriter.println("Before using other commands, register with /newClient command with a valid username");
+                send("Register with /newClient command with a valid username");
                 return;
             }
 
@@ -194,8 +210,21 @@ public class ChatServer implements AutoCloseable {
                 }
 
                 case "/changeUsername": {
+                    if(isAdmin) {
+                        send("Error: admin can't change their username");
+                        return;
+                    }
                     handleChangeUsername(body);
                     break;
+                }
+
+                case "/ban": {
+                    if(isAdmin) {
+                        handleUserBan(body);
+                        break;
+                    } else {
+                        send("Error: only admins can use /ban command");
+                    }
                 }
 
                 case "/disconnect": {
@@ -246,6 +275,41 @@ public class ChatServer implements AutoCloseable {
                     clientWriter.println("Wrong Command");
                 }
             }
+        }
+
+
+
+        void handleAdminLogin(String username, String password) {
+            if(!(username.equals("admin") && password.equals("admin"))) {
+               send("Error: Incorrect Credentials");
+               return;
+            }
+            if(connections.containsKey("admin")) {
+                send("Error: Admin is already logged in");
+            }
+            this.username = "admin";
+            this.usernameColor = CustomColors.BRIGHT_RED;
+            isAdmin = true;
+            addConnection(this);
+            send("Success: Logged in as admin");
+            isNew = false;
+        }
+
+        void handleUserBan(String username) {
+            if(username != null && username.trim().isEmpty()) {
+                send("Error: Insert a valid username");
+                return;
+            }
+
+            if(!connections.containsKey(username)) {
+                send("Error: The provided username is not in the chat room");
+                return;
+            }
+
+            ConnectionHandler userToBan = connections.get(username);
+            userToBan.send("Error: You have been banned");
+            userToBan.close();
+            broadcast("'"+ username +"' has been banned by admin");
         }
 
         void handleNewClient(String usernameForNewUser) {

@@ -69,16 +69,27 @@ public class ChatClient {
 
             //initial authentication
 
+            String loginPrompt = "Enter your username: ";
+            String command = "/newClient";
             do {
                 String reply;
-                String newUsername;
-                System.out.print("Enter your username: ");
-                newUsername = terminalReader.readLine();
-                serverWriter.println("/newClient " + newUsername);
+                System.out.print(loginPrompt);
+                String credentials = terminalReader.readLine();
+                serverWriter.println(command + " " + credentials);
                 reply = serverReader.readLine();
 
-                if(reply.contains(":")) {
+                if(credentials.equalsIgnoreCase("/adminLogin")) {
+                    loginPrompt = "Enter admin credentials [username--password]:  ";
+                    command = "/adminLogin";
+                    continue;
+                }
+                if(credentials.equalsIgnoreCase("/newClient")) {
+                    loginPrompt = "Enter your username: ";
+                    command = "/newClient";
+                    continue;
+                }
 
+                if(reply.contains(":")) {
                     String typeOfResponse = reply.substring(0, reply.indexOf(":"));
                     String responseBody = reply.substring(reply.indexOf(":") + 1);
 
@@ -90,7 +101,10 @@ public class ChatClient {
                         //print the welcome message
                         ColorPrint.printAtCenterWithBox(terminalReader, responseBody, CustomColors.YELLOW /*orange color*/);
 
-                        setMyUsername(newUsername);
+                        if(command.equals("/adminLogin")) {
+                            setMyUsername(credentials.substring(0, credentials.indexOf("-")));
+                        } else
+                            setMyUsername(credentials);
                         break;
                     }
                 }
