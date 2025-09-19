@@ -90,7 +90,7 @@ public class ColorPrint {
                     lineWithColor.append(" ".repeat(12)); //10 for username + ":" + " "
                 }
 
-                lineWithColor.append(line, AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE).background(COLOR_DARK_GRAY));
+                lineWithColor.append(line, AttributedStyle.DEFAULT.foreground(CustomColors.BRIGHT_CYAN).background(COLOR_DARK_GRAY));
 
                 messagesWithColor.add(lineWithColor);
 
@@ -106,7 +106,7 @@ public class ColorPrint {
 
             lineWithColor.append(": ");
 
-            lineWithColor.append(" " + message + " ", AttributedStyle.DEFAULT.foreground(AttributedStyle.BLUE).background(COLOR_DARK_GRAY));
+            lineWithColor.append(" " + message + " ", AttributedStyle.DEFAULT.foreground(CustomColors.BRIGHT_CYAN).background(COLOR_DARK_GRAY));
 
             // Print using printAbove so prompt is redrawn correctly
             reader.printAbove(lineWithColor.toAnsi());
@@ -165,8 +165,8 @@ public class ColorPrint {
     }
 
 
-    public static void printOnlineList(LineReader reader, String list, int color) {
-        String[] lines = list.split("-");
+    public static void printList(LineReader reader, String list, int color) {
+        String[] lines = list.split("--");
         //find maximum line length
         int maxLength = 0;
         int count = 0;

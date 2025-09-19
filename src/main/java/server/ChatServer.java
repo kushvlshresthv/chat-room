@@ -216,10 +216,29 @@ public class ChatServer implements AutoCloseable {
                     StringBuilder list = new StringBuilder();
                     int count = 1;
                     for(String name: connections.keySet()) {
-                        list.append(count).append(". ").append(name).append("-");
+                        list.append(count).append(". ").append(name).append("--");
                         count++;
                     }
-                    send("OnlineList: " + list.substring(0, list.length() - 1/*remove the last new line*/));
+                    send("OnlineList: " + list.substring(0, list.length() - 2/*remove the last '--'*/));
+                    break;
+                }
+
+                case "/help": {
+                    StringBuilder helps = new StringBuilder();
+                    int count = 1;
+                    helps.append("Help: ");
+                    helps.append("/onlineCount    : check how many people are online");
+
+                    helps.append("--");
+                    helps.append("/onlineList     : list the online usernames");
+
+                    helps.append("--");
+                    helps.append("/disconnect     : leave the chat roomt");
+
+                    helps.append("--");
+                    helps.append("/changeUsername <newUsername>: changes the username");
+
+                    send(helps.toString());
                     break;
                 }
 
@@ -230,18 +249,9 @@ public class ChatServer implements AutoCloseable {
         }
 
         void handleNewClient(String usernameForNewUser) {
-            if(usernameForNewUser == null || usernameForNewUser.trim().isEmpty()) {
-                send("Error: Invalid Username");
-                return;
-            }
-
-            if(usernameForNewUser.length() > MAX_USERNAME_SIZE) {
-                send("Error: Username too long [10 characters max]");
-                return;
-            }
-
-            if(connections.containsKey(usernameForNewUser)) {
-                send("Error: Username is already in use");
+            String result = checkUsernameValidity(usernameForNewUser);
+            if(result != null) {
+                send("Error: " + result);
                 return;
             }
 
@@ -264,19 +274,9 @@ public class ChatServer implements AutoCloseable {
 
         void handleChangeUsername(String newUsername) {
             //To see why UsernameChangeFailed used instead of 'Error', see Client implementation
-            if(newUsername == null || newUsername.trim().isEmpty()) {
-                send("UsernameChangeFailed: Username shouldn't be empty");
-                return;
-            }
-
-
-            if(newUsername.length() > MAX_USERNAME_SIZE) {
-                send("UsernameChangeFailed: Username too long [10 characters max]");
-                return;
-            }
-
-            if(connections.containsKey(newUsername)) {
-                send("UsernameChangeFailed: Username is already in use");
+            String result = checkUsernameValidity(newUsername);
+            if(result != null) {
+                send("UsernameChangeFailed: " + result);
                 return;
             }
 
@@ -286,6 +286,28 @@ public class ChatServer implements AutoCloseable {
             addConnection(this);
             broadcastExceptFor("'" + oldUsername+"'" + " changed their username to '" + newUsername + "'", this);
             send("UsernameChanged: " + newUsername + ": Username successfully changed to '" + newUsername + "'");
+        }
+
+        /**
+         * returns error message if the validation failed,
+         * returns null, if the validation succeeds
+         */
+        private String checkUsernameValidity(String username) {
+            if(username == null || username.trim().isEmpty()) {
+                return "Username cannot be empty";
+            } else if(username.length() > MAX_USERNAME_SIZE) {
+                return "Username too long [10 characters max]";
+            } else if(connections.containsKey(username)) {
+                return "Username is already in use";
+            } else if(username.equalsIgnoreCase("admin")) {
+                return "This username is reserved";
+            } else if(username.contains("-")) {
+                return "Username can't contain '-' character";
+            }
+
+            else {
+                return null;
+            }
         }
 
 

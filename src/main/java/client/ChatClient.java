@@ -88,7 +88,7 @@ public class ChatClient {
 
                     else if(typeOfResponse.equalsIgnoreCase("Success")) {
                         //print the welcome message
-                        ColorPrint.printAtCenterWithBox(terminalReader, responseBody, CustomColors.BRIGHT_YELLOW /*orange color*/);
+                        ColorPrint.printAtCenterWithBox(terminalReader, responseBody, CustomColors.YELLOW /*orange color*/);
 
                         setMyUsername(newUsername);
                         break;
@@ -175,10 +175,14 @@ public class ChatClient {
                             }
 
                             case "OnlineList": {
-                               ColorPrint.printOnlineList(terminalReader, responseBody, CustomColors.BRIGHT_GREEN);
+                               ColorPrint.printList(terminalReader, responseBody, CustomColors.BRIGHT_GREEN);
                                break;
                            }
 
+                            case "Help": {
+                                ColorPrint.printList(terminalReader, responseBody, CustomColors.BRIGHT_MAGENTA);
+                                break;
+                            }
 
 
                            default: {

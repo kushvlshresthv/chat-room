@@ -1,5 +1,7 @@
 package utils;
 
+import org.jline.utils.AttributedStyle;
+
 public class CustomColors {
     public static final int BRIGHT_GREEN = 82;
     public static final int ORANGE = 208;
@@ -8,4 +10,5 @@ public class CustomColors {
     public static final int BRIGHT_BLUE   = 21;
     public static final int BRIGHT_CYAN   = 51;
     public static final int BRIGHT_MAGENTA= 201;
+    public static final int YELLOW = AttributedStyle.YELLOW;
 }
