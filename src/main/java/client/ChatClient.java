@@ -39,7 +39,7 @@ public class ChatClient {
         this.hostname = hostname;
         this.port = port;
         try {
-            Completer completer = new StringsCompleter("/disconnect", "/changeUsername");
+            Completer completer = new StringsCompleter("/disconnect", "/changeUsername", "/onlineCount");
             this.terminal = TerminalBuilder.builder().system(true).build();
             this.terminalReader = LineReaderBuilder.builder().terminal(terminal).completer(completer).build();
         } catch (IOException e) {
@@ -165,6 +165,14 @@ public class ChatClient {
                                 break;
                             }
 
+                            case "OnlineCount": {
+                                if(responseBody.equals("1")) {
+                                    ColorPrint.printAtCenterWithBox(terminalReader, "Only you are in the chat room", 208);
+                                } else {
+                                    ColorPrint.printAtCenterWithBox(terminalReader, responseBody + " people are in the chat room", 208);
+                                }
+                                break;
+                            }
                            default: {
                                 ColorPrint.printAtCenterWithBox(terminalReader, response, 208 /*orange color*/);
                             }

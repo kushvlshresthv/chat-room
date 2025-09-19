@@ -199,11 +199,21 @@ public class ChatServer implements AutoCloseable {
                 }
 
                 case "/disconnect": {
+                    //send /disconnect so that client can initate the disconnect process
                     send("/disconnect");
                     broadcastExceptFor("Disconnect: " + username + " has left the chat", this);
                     close();
                     break;
                     //this closes the socket, and since the socket is closed, run() faces an exception which logs Client Disconnected as a part of error handling.
+                }
+
+                case "/onlineCount": {
+                    send("OnlineCount: " + connections.size());
+                    break;
+                }
+
+                case "/onlineList": {
+
                 }
 
                 default: {
@@ -282,7 +292,6 @@ public class ChatServer implements AutoCloseable {
 
         @Override
         public void close() {
-
             //closing the client socket from the server side
             if (clientSocket != null && !clientSocket.isClosed()) {
                 try {
