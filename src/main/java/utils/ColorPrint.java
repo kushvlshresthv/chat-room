@@ -28,22 +28,23 @@ public class ColorPrint {
     public static void printAtCenterWithBox(LineReader reader, String message, int color) {
         message = message.trim();
         int messageLength = message.length();
-        message = new AttributedString(message,
-                AttributedStyle.DEFAULT.foreground(color)).toAnsi();
 
         message = "| " + message + " |";
+        String coloredMessage = new AttributedString(message,
+                AttributedStyle.DEFAULT.foreground(color)).toAnsi();
         messageLength +=4;
 
 
         String boxBorder = "-".repeat(messageLength);
+        String coloredBoxBorder = new AttributedString(boxBorder, AttributedStyle.DEFAULT.foreground(color)).toAnsi();
 
         //Centering by add spaces
-        message = " ".repeat((TOTAL_LINE_LENGTH - messageLength)/2) + message;
-        boxBorder = " ".repeat((TOTAL_LINE_LENGTH - messageLength)/2) + boxBorder;
+        String centeredAndColoredMessage = " ".repeat((TOTAL_LINE_LENGTH - messageLength)/2) + coloredMessage;
+        String centeredAndColoredBoxBorder = " ".repeat((TOTAL_LINE_LENGTH - messageLength)/2) + coloredBoxBorder;
 
-        reader.printAbove(boxBorder);
-        reader.printAbove(message);
-        reader.printAbove(boxBorder);
+        reader.printAbove(centeredAndColoredBoxBorder);
+        reader.printAbove(centeredAndColoredMessage);
+        reader.printAbove(centeredAndColoredBoxBorder);
     }
 
 
@@ -161,6 +162,46 @@ public class ColorPrint {
             messageWithBackground = " ".repeat(TOTAL_LINE_LENGTH - message.length() - 2 /*due to two spaces added*/) + messageWithBackground;
             reader.printAbove(messageWithBackground);
         }
+    }
+
+
+    public static void printOnlineList(LineReader reader, String list, int color) {
+        String[] lines = list.split("-");
+        //find maximum line length
+        int maxLength = 0;
+        int count = 0;
+        for (String line : lines) {
+            if (line.length() > maxLength) {
+                maxLength = line.length();
+            }
+            count++;
+        }
+
+
+
+        maxLength = maxLength + 4;
+
+        String border = "-".repeat(maxLength);
+
+        //centering and coloring the border
+        String centeredBorder = " ".repeat((TOTAL_LINE_LENGTH - maxLength)/2) + border;
+
+        String centeredAndColoredBorder = new AttributedString(centeredBorder, AttributedStyle.DEFAULT.foreground(color)).toAnsi();
+
+        reader.printAbove(centeredAndColoredBorder);
+
+        for(String line: lines) {
+
+            String centeredLine = "| " + line + " ".repeat(maxLength-line.length() - 4) + " |";
+            //centering
+            centeredLine = " ".repeat((TOTAL_LINE_LENGTH - maxLength)/2) + centeredLine;
+
+            String coloredAndCenteredLine = new AttributedString(centeredLine, AttributedStyle.DEFAULT.foreground(color)).toAnsi();
+
+            reader.printAbove(coloredAndCenteredLine);
+        }
+
+        reader.printAbove(centeredAndColoredBorder);
     }
 }
 

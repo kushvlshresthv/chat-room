@@ -213,7 +213,14 @@ public class ChatServer implements AutoCloseable {
                 }
 
                 case "/onlineList": {
-
+                    StringBuilder list = new StringBuilder();
+                    int count = 1;
+                    for(String name: connections.keySet()) {
+                        list.append(count).append(". ").append(name).append("-");
+                        count++;
+                    }
+                    send("OnlineList: " + list.substring(0, list.length() - 1/*remove the last new line*/));
+                    break;
                 }
 
                 default: {

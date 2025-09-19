@@ -9,6 +9,7 @@ import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedStyle;
 import org.jline.utils.InfoCmp;
 import utils.ColorPrint;
+import utils.CustomColors;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -31,7 +32,6 @@ public class ChatClient {
     private volatile String myUsername;
 
 
-
     Terminal terminal;
     LineReader terminalReader;
 
@@ -39,7 +39,7 @@ public class ChatClient {
         this.hostname = hostname;
         this.port = port;
         try {
-            Completer completer = new StringsCompleter("/disconnect", "/changeUsername", "/onlineCount");
+            Completer completer = new StringsCompleter("/disconnect", "/changeUsername", "/onlineCount", "/onlineList");
             this.terminal = TerminalBuilder.builder().system(true).build();
             this.terminalReader = LineReaderBuilder.builder().terminal(terminal).completer(completer).build();
         } catch (IOException e) {
@@ -88,7 +88,7 @@ public class ChatClient {
 
                     else if(typeOfResponse.equalsIgnoreCase("Success")) {
                         //print the welcome message
-                        ColorPrint.printAtCenterWithBox(terminalReader, responseBody, AttributedStyle.YELLOW /*orange color*/);
+                        ColorPrint.printAtCenterWithBox(terminalReader, responseBody, CustomColors.BRIGHT_YELLOW /*orange color*/);
 
                         setMyUsername(newUsername);
                         break;
@@ -117,7 +117,7 @@ public class ChatClient {
 
                         //when the response does not contain any 'type'
                         if(!response.contains(":")) {
-                            ColorPrint.printAtCenterWithBox(terminalReader, response, 208 /*orange color*/);
+                            ColorPrint.printAtCenterWithBox(terminalReader, response, CustomColors.ORANGE /*orange color*/);
                             continue;
                         }
 
@@ -148,7 +148,7 @@ public class ChatClient {
                             case "UsernameChanged": {
                                 setMyUsername(responseBody.split(":")[0].trim());
                                 String actualMessage = responseBody.split(":")[1].trim();
-                                ColorPrint.printAtCenterWithBox(this.terminalReader, actualMessage, AttributedStyle.YELLOW);
+                                ColorPrint.printAtCenterWithBox(this.terminalReader, actualMessage, CustomColors.BRIGHT_YELLOW);
 
                                 //terminalReaderTask is waiting whether the change is success or failure to display the messge prompt.
                                 synchronized (lock) {
@@ -167,14 +167,22 @@ public class ChatClient {
 
                             case "OnlineCount": {
                                 if(responseBody.equals("1")) {
-                                    ColorPrint.printAtCenterWithBox(terminalReader, "Only you are in the chat room", 208);
+                                    ColorPrint.printAtCenterWithBox(terminalReader, "Only you are in the chat room", CustomColors.ORANGE);
                                 } else {
-                                    ColorPrint.printAtCenterWithBox(terminalReader, responseBody + " people are in the chat room", 208);
+                                    ColorPrint.printAtCenterWithBox(terminalReader, responseBody + " people are in the chat room", CustomColors.ORANGE);
                                 }
                                 break;
                             }
+
+                            case "OnlineList": {
+                               ColorPrint.printOnlineList(terminalReader, responseBody, CustomColors.BRIGHT_GREEN);
+                               break;
+                           }
+
+
+
                            default: {
-                                ColorPrint.printAtCenterWithBox(terminalReader, response, 208 /*orange color*/);
+                                ColorPrint.printAtCenterWithBox(terminalReader, response, CustomColors.ORANGE /*orange color*/);
                             }
                         }
                     }
