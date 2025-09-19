@@ -10,7 +10,7 @@ import java.util.Queue;
 
 public class ColorPrint {
 
-    private static final int TOTAL_LINE_LENGTH = 65;
+    private static final int TOTAL_LINE_LENGTH = 75;
     /**
      * maximum available space for 'my messages' out of total space
      * */
@@ -112,6 +112,8 @@ public class ColorPrint {
             reader.printAbove(lineWithColor.toAnsi());
         }
 
+        reader.printAbove(" ");
+
     }
 
     public static void printMyMessage(LineReader reader, String message) {
@@ -162,6 +164,7 @@ public class ColorPrint {
             messageWithBackground = " ".repeat(TOTAL_LINE_LENGTH - message.length() - 2 /*due to two spaces added*/) + messageWithBackground;
             reader.printAbove(messageWithBackground);
         }
+        reader.printAbove(" ");
     }
 
 

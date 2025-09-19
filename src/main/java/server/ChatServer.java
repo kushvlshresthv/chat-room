@@ -339,16 +339,16 @@ public class ChatServer implements AutoCloseable {
         }
 
         void handleChangeUsername(String newUsername) {
-            //To see why UsernameChangeFailed used instead of 'Error', see Client implementation
+            //To see why UsernameChangeFailed used instead of 'Error', see Client implementation(Thread waiting issue)
             String result = checkUsernameValidity(newUsername);
             if(result != null) {
                 send("UsernameChangeFailed: " + result);
                 return;
             }
 
+            removeConnection(this); //old username as key is removed
             String oldUsername = username;
             this.username = newUsername;
-            removeConnection(this); //old username as key is removed
             addConnection(this);
             broadcastExceptFor("'" + oldUsername+"'" + " changed their username to '" + newUsername + "'", this);
             send("UsernameChanged: " + newUsername + ": Username successfully changed to '" + newUsername + "'");

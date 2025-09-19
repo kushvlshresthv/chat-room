@@ -39,7 +39,7 @@ public class ChatClient {
         this.hostname = hostname;
         this.port = port;
         try {
-            Completer completer = new StringsCompleter("/disconnect", "/changeUsername", "/onlineCount", "/onlineList");
+            Completer completer = new StringsCompleter("/disconnect", "/changeUsername", "/onlineCount", "/onlineList", "/help");
             this.terminal = TerminalBuilder.builder().system(true).build();
             this.terminalReader = LineReaderBuilder.builder().terminal(terminal).completer(completer).build();
         } catch (IOException e) {

@@ -30,19 +30,17 @@ public class ColorAssigner {
 
     static {
         colors.add(RED);
-        colors.add(ORANGE);
-        colors.add(YELLOW);
         colors.add(GREEN);
-        colors.add(LIGHT_GREEN);
-        colors.add(CYAN);
+        colors.add(YELLOW);
+        colors.add(MAGENTA);
         colors.add(TEAL);
         colors.add(BLUE);
-        colors.add(LIGHT_BLUE);
         colors.add(PURPLE);
-        colors.add(MAGENTA);
-        colors.add(LIGHT_GRAY);
-        colors.add(WHITE);
+        colors.add(LIGHT_BLUE);
+        colors.add(LIGHT_GREEN);
+        colors.add(YELLOW);
     }
+
 
     static int count = 0;
 
